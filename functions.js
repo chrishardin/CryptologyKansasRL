@@ -6,6 +6,8 @@ const info = require("./info.json");
 const rank_emojis = require("./rank_emojis.json");
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
+const fs = require('fs')
+const { createCanvas, loadImage } = require('canvas')
 
 // gets raw data from rl api
 module.exports.getRawData = (URL) => {
@@ -386,6 +388,104 @@ function embedMaker(desc, mode, team){
     return embed;
 }
 
+
+function getHeight(context, text){
+    return context.measureText(text).actualBoundingBoxAscent + context.measureText(text).actualBoundingBoxDescent
+}
+  function getWidth(context, text){
+    return context.measureText(text).width
+}
+
+module.exports.canvasGenerator = async (message, desc, mode, team, userRanks) => {
+
+    const colors = {"white": "#fff", "dark_gray": "#1f2124", "light_gray": "#2f3136", "text": "#acaeb2", "mmr_text": "#dcdcdd",
+                    0: 'red', 1: 'orange', 2: 'yellow', 3: 'green', 4: 'blue'}
+
+    const width = 400
+    const height = 250
+    let start_width = 0
+    let start_height = 0
+    const size = userRanks.length
+    const paddingUp = 5
+    const paddingDown = 10
+    const paddingSide = 10
+    const rectHeight = (height / size) - paddingDown
+    const canvas = createCanvas(width, height);
+    const context = canvas.getContext('2d');
+  
+    // dark gray background
+    context.fillStyle = colors['dark_gray']
+    context.fillRect(start_width, start_height, width, height)
+
+    start_width = 5
+    start_height = 5
+    console.log(`current: (${start_width}, ${start_height})`)
+    // header
+    let header = `${team} ${mode}`
+    context.font = 'bold 16px sans-serif'
+    context.textAlign = 'left'
+    context.textBaseline = 'top'
+    context.fillStyle = colors['dark_gray']
+    context.fillText(header, start_width,start_height)
+    header_height = getHeight(context, header)
+
+    context.fillStyle = colors['light_gray']
+    context.fillRect(start_width, start_height, width-paddingSide, header_height+7)
+
+    header = `${team} ${mode}`
+    context.font = 'bold 16px sans-serif'
+    context.textAlign = 'left'
+    context.textBaseline = 'top'
+    context.fillStyle = colors['text']
+    context.fillText(header, start_width+7,start_height)
+
+    // cards
+    //console.log(height/size)
+    //console.log(rectHeight)
+    console.log(`max: (${width}, ${height})`)
+
+    start_height = header_height + 7
+    console.log(`current: (${start_width}, ${start_height})`)
+    console.log(`start_height+(0*rectHeight) = ${start_height+(0*rectHeight)}`)
+    console.log(`start_height+(1*rectHeight) = ${start_height+(1*rectHeight)}`)
+    console.log(`start_height+(2*rectHeight) = ${start_height+(2*rectHeight)}`)
+    console.log(`start_height+(3*rectHeight) = ${start_height+(3*rectHeight)}`)
+    console.log(`start_height+(4*rectHeight) = ${start_height+(4*rectHeight)}`)
+    for(let i = 0; i < size; i++)
+    {
+
+        context.fillStyle = colors[i]
+        context.globalAlpha = 0.4;
+        context.fillRect(start_width, start_height+(i*rectHeight) + paddingDown, width-paddingSide, start_height+((i)*rectHeight)+ 5)
+        console.log(`(${start_width}, ${start_height+(i*rectHeight) + paddingDown}) -> (${width-paddingSide}, ${start_height+((i)*rectHeight)+ 5})`)
+        
+            header = `${i} (${start_width}, ${start_height+(i*rectHeight)+paddingDown})`
+        context.font = 'bold 8px sans-serif'
+        context.textAlign = 'left'
+        context.textBaseline = 'top'
+        context.fillStyle = colors['text']
+        context.fillText(header, start_width,start_height+(i*rectHeight)+paddingDown)
+  
+        
+
+    }
+
+    
+
+    
+
+  const buffer = canvas.toBuffer('image/png')
+  fs.writeFileSync('./rank.png', buffer)
+  const attachment = new Discord.MessageAttachment(buffer, './rank.png')
+  if(message.author.id === '158624640887947264')
+  {
+    return message.channel.send(attachment)
+  }
+  
+  
+}
+
+
 // for commands !3s !2s !1s
 module.exports.generatePlayerMMRs = async (message, player, mode, type = "") => {
         
@@ -419,6 +519,7 @@ module.exports.generatePlayerMMRs = async (message, player, mode, type = "") => 
         })
         
         let embed = embedMaker(desc, mode, team)
+        this.canvasGenerator(message, desc, mode, team, userRanks)
         message.channel.send(embed)
 
 }
