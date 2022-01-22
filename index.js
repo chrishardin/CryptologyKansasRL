@@ -52,10 +52,10 @@ client.on("message", async message => {
 
     if(now === "!s" && message.author.id === "158624640887947264")
     {
-        functions.updateTodayGamers(client)
+        //functions.updateTodayGamers(client)
     }
 
-    if(now.startsWith("!find") && message.author.id === "158624640887947264")
+    if(now.startsWith("!find"))
     {
         let arg = now.split(" ")
         let player = arg[1]
